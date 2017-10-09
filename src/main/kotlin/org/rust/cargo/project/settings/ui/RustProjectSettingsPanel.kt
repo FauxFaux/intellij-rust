@@ -33,12 +33,14 @@ class RustProjectSettingsPanel(private val cargoProjectDir: Path = Paths.get("."
 
     private val pathToToolchainField = pathToDirectoryTextField(this,
         "Select directory with cargo binary", { update() })
+    private val pathToToolchain: Path
+        get() = Paths.get(pathToToolchainField.text)
 
     private val pathToStdlibField = pathToDirectoryTextField(this,
         "Select directory with standard library source code")
 
     private val downloadStdlibLink = Link("Download via rustup", action = {
-        val rustup = RustToolchain(pathToToolchainField.text).rustup
+        val rustup = RustToolchain(pathToToolchain).rustup
         if (rustup != null) {
             object : Task.Backgroundable(null, "Downloading Rust standard library") {
                 override fun shouldStartInBackground(): Boolean = false
@@ -56,12 +58,12 @@ class RustProjectSettingsPanel(private val cargoProjectDir: Path = Paths.get("."
 
     var data: Data
         get() = Data(
-            toolchain = RustToolchain(pathToToolchainField.text),
+            toolchain = RustToolchain(pathToToolchain),
             explicitPathToStdlib = (if (downloadStdlibLink.isVisible) null else pathToStdlibField.text.blankToNull())
         )
         set(value) {
             // https://youtrack.jetbrains.com/issue/KT-16367
-            pathToToolchainField.setText(value.toolchain?.location)
+            pathToToolchainField.setText(value.toolchain?.location?.toString())
             pathToStdlibField.text = value.explicitPathToStdlib ?: ""
             update()
         }
@@ -87,7 +89,7 @@ class RustProjectSettingsPanel(private val cargoProjectDir: Path = Paths.get("."
     }
 
     private fun update() {
-        val pathToToolchain = pathToToolchainField.text
+        val pathToToolchain = pathToToolchain
         versionUpdateDebouncer.run(
             onPooledThread = {
                 val toolchain = RustToolchain(pathToToolchain)
